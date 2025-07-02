@@ -1,7 +1,7 @@
 //Changelog
 
 //2025/7/2
-//gitにコミットするためのダミー。コードに変更は加えていない。
+//dphの計算にバグあり。正分で正しく計算できていない。
 
 //2025/6/27
 //dph計算のバグが取れた。正秒で値が狂っていたのを修正。実際に位相（fringe[])の値を決定してから差をとる方式に変えた。
@@ -1360,10 +1360,11 @@ int main(int argc, char*argv[]){
 							
 								xx0=xx;
 								fringe[j]=fz_res_out[j].fringe+2.*PI*(double)ll;	//lは現正秒基準
-								if((j+1)%SAMP==0) fringe0-=2.*PI*(double)dl;	//正秒の場合のfringe0は1s前の正秒基準のためdlで補正
+								//if((j+1)%SAMP==0) fringe0-=2.*PI*(double)dl;	//正秒の場合のfringe0は1s前の正秒基準のためdlで補正
 								
 								if(j==0){
 									dfringe=fringe[0]-fringe0;
+									//dfringe=fringe[j]-fringe[j-1];
 								}else{
 									dfringe=fringe[j]-fringe[j-1];
 								}
