@@ -635,6 +635,14 @@ int main(int argc, char*argv[]){
 	//double sx,sxx,sy,sxy,g1,g2,g3,gav,gsd,a,b,q1,qmin1,nn;
 //	double PI=3.1415926535897932384626;
 
+// データ読み込み用配列を確保
+	id0=calloc(60*SAMP,sizeof(int)); if (id0==NULL)exit(0);
+	id1=calloc(60*SAMP,sizeof(int)); if (id1==NULL)exit(0);
+	id2=calloc(60*SAMP,sizeof(int)); if (id2==NULL)exit(0);
+	id3=calloc(60*SAMP,sizeof(int)); if (id3==NULL)exit(0);
+
+
+
 	//補間処理に関わる変数
 	int flg_int; //補間中か否かを区別するフラグ（0:補間していない, 1:補間処理中）
 	int int_s, int_e; //補間開始&終了ブロック番号
@@ -964,12 +972,6 @@ int main(int argc, char*argv[]){
 						}
 					*/
 					
-					// データ読み込み用配列を確保
-						id0=calloc(60*SAMP,sizeof(int)); if (id0==NULL)exit(0);
-						id1=calloc(60*SAMP,sizeof(int)); if (id1==NULL)exit(0);
-						id2=calloc(60*SAMP,sizeof(int)); if (id2==NULL)exit(0);
-						id3=calloc(60*SAMP,sizeof(int)); if (id3==NULL)exit(0);
-
 					// データファイル読み込み（1分単位）
 						//printf("reading: %s\n", fnin1);
 						if(fread(id0,sizeof(int),60*SAMP,fin0)!=60*SAMP){
@@ -1057,11 +1059,11 @@ int main(int argc, char*argv[]){
 								//flg1=calloc(sizeof(int)*Nblock_step[istep]); // 処理中の段のフィッティング良否を入れるフラグ
 								if(k==0){
 									//printf("istep:%d, MM:%d, flgblk:%d, MMtab[istep]:%d,\n",istep,MM,flgblk,MMtab[istep]);
-									printf("step:%d, fit length:%3.1f msec\n",istep,(float)MMtab[istep]*UNIT_LEN/SAMP*1000.);
+									//printf("step:%d, fit length:%3.1f msec\n",istep,(float)MMtab[istep]*UNIT_LEN/SAMP*1000.);
 									
 								}
 																
-								if((istep==0)||(flgblk!=MMtab[istep])){ // 処理中の段が最初の段にあたる or ひとつ上の段の対応するブロックが不良の場合のみフィッティングを行う。
+								if((istep==0)||(flgblk!=MMtab[istep])){ // 処理中の段が最初の段にあたる or ひとつ上の段の対応するブロックが不良の場合はフィッティングを行う。
 									//printf("execute fitting\n");
 									// 単純にMM点で区切った区間を使ってフィッティング（端付近などの違いは考慮しない）
 									// フィッティング関数に渡すデータ点を決定
@@ -1168,12 +1170,9 @@ int main(int argc, char*argv[]){
 									free(fz_res);
 																		
 									
-								}else{
-									//flg1[k]=2; // 前段までで良好なフィット結果が得られている場合、フィッティングは行わない（フラグ=2）
-									//printf("no need to fit\n");
 								}
 												
-							k++;
+								k++;
 							//if(istep>0&&k>20)exit(0); // for debug
 							}
 							/*
@@ -1349,7 +1348,8 @@ int main(int argc, char*argv[]){
 									ll=0;
 								}
 								*/
-								
+
+
 								if(xx-xx0>PI){
 									ll--;
 								}else{
@@ -1361,10 +1361,16 @@ int main(int argc, char*argv[]){
 								xx0=xx;
 								fringe[j]=fz_res_out[j].fringe+2.*PI*(double)ll;	//lは現正秒基準
 								//if((j+1)%SAMP==0) fringe0-=2.*PI*(double)dl;	//正秒の場合のfringe0は1s前の正秒基準のためdlで補正
+
+								if(j==60*SAMP-1){
+									fringe0=fringe[j];
+								}
+								
 								
 								if(j==0){
 									dfringe=fringe[0]-fringe0;
 									//dfringe=fringe[j]-fringe[j-1];
+									//printf("j=%d, dfringe:%f\n",j,dfringe);
 								}else{
 									dfringe=fringe[j]-fringe[j-1];
 								}
@@ -1438,7 +1444,7 @@ int main(int argc, char*argv[]){
 									llmin=(int)floor((fringemin+PI)/2./PI);
 									xxmin=(float)(fringemin-2.*PI*(double)llmin);
 									
-									printf("dphmax:%f, dphmin:%f \n",dphmax,dphmin);
+									//printf("dphmax:%f, dphmin:%f \n",dphmax,dphmin);
 									
 									
 									//fprintf(fout,"%d %d %d %d %d %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",zabsmax, zabsmin, )
@@ -1571,7 +1577,6 @@ int main(int argc, char*argv[]){
 							return(-1);
 						}
 
-						free(id0); free(id1); free(id2); free(id3);
 						free(bph);
 						free(fz_res_out);
 						if(optbelp==1) free(belp);
@@ -1636,6 +1641,8 @@ int main(int argc, char*argv[]){
 
 		} // month count
 	} // year count
+	
+	free(id0); free(id1); free(id2); free(id3);
 
 	//print end time
 	time_t t_e=time(NULL);
