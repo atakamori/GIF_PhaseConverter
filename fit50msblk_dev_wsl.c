@@ -1,5 +1,10 @@
 //Changelog
 
+//2025/7/4
+//長時間のデータを処理する際、プログラムが停止してしまう問題の原因がわかった。
+//プログラムのメモリ管理ではなく、標準出力（ターミナル）のバッファの問題だった。
+//printfで経過を表示する頻度を落としたら解決した。とりあえず24時間分のデータは処理できるようになった。
+
 //2025/7/2
 //dphの計算にバグあり。正分で正しく計算できていない。
 
@@ -582,6 +587,7 @@ int main(int argc, char*argv[]){
 	int *id0,*id1,*id2,*id3; // .AD0*ファイルから読み込んだデータを格納する配列のポインタ（デフォルト1分長）
 
 	int *idfit0,*idfit1,*idfit2,*idfit3; // フィッティングに使うデータを格納する配列のポインタ
+	int *idfit0i,*idfit1i,*idfit2i,*idfit3i; // 補間フィッティングに使うデータを格納する配列のポインタ
 	
 	struct fringe_zabs *fz_res;
 	struct fringe_zabs_out *fz_res_out;
@@ -596,8 +602,8 @@ int main(int argc, char*argv[]){
 	struct fit_eval_param evalpara, evalpara_int; // フィットするブロックの良否判定に用いるパラメータを入れる変数（暫定的にzabsmin, zabsmax, fringemin, fringemaxとする）
 	
 	double th_zabsmax, th_zabsmin; // フィッティング結果の合否に用いるzabsの範囲を決める閾値
-	th_zabsmax=1.3;
-	th_zabsmin=0.5;
+	th_zabsmax=1.5;
+	th_zabsmin=0.3;
 	double th_dphmax, th_dphmin; // フィッティング良否判定に用いるdphの範囲を決める閾値
 	th_dphmax=PI*3.;
 	th_dphmin=-PI*3.;
@@ -888,20 +894,21 @@ int main(int argc, char*argv[]){
 				else	ihs=0;
 				if((iy==iey)&&(im==iem)&&(id==ied))	ihe=ieh;
 				else	ihe=23;
+				printf("processing data of : 20%02d/%02d/%02d \n",iy,im,id);
 
 				for(ih=ihs;ih<=ihe;ih++){ // hour counter 
 					if((iy==isy)&&(im==ism)&&(id==isd)&&(ih==ish))	imins=ismin;
 					else	imins=0;
 					if((iy==iey)&&(im==iem)&&(id==ied)&&(ih==ieh))	imine=iemin;
 					else	imine=59;
-
+					
 					for(imin=imins;imin<=imine;imin++){ // minute counter 
-					printf("\nprocessing data of: 20%02d%02d%02d%02d%02d\n", iy,im,id,ih,imin);
-					//printf("n:%ld, n1:%ld\n", n, n1);
+						//printf("\nprocessing data of: 20%02d%02d%02d%02d%02d\n", iy,im,id,ih,imin);
+						//printf("n:%ld, n1:%ld\n", n, n1);
 
-					// make file name 
+						// make file name 
 						strcpy(fnin,fpath);
-					//	strcat(fnin,"50000Hz\\20");
+						//	strcat(fnin,"50000Hz\\20");
 						strcat(fnin,"/20");
 						strcat(fnin,num[iy/10]);
 						strcat(fnin,num[iy-(iy/10)*10]);
@@ -952,27 +959,27 @@ int main(int argc, char*argv[]){
 							printf("file open error (%s) !! \n",fnin1);
 							return(-1);
 						}
-					//	printf("output data start time [s] ? \n");
-					//	scanf("%d",&ntest);
+						//	printf("output data start time [s] ? \n");
+						//	scanf("%d",&ntest);
 
-					//printf("n= ? \n");
-					//scanf("%d",&jk);
+						//printf("n= ? \n");
+						//scanf("%d",&jk);
 
-					/*	if(nf==1){
-							strcpy(fnin,fn);
-							strcat(fnin,".txt");
-							if((fpout=fopen(fnin,"w"))==NULL){
-								puts("output file open error (.txt) !!");
-								return(-1);
+						/*	if(nf==1){
+								strcpy(fnin,fn);
+								strcat(fnin,".txt");
+								if((fpout=fopen(fnin,"w"))==NULL){
+									puts("output file open error (.txt) !!");
+									return(-1);
+								}
+								if((fraw=fopen("test2.txt","w"))==NULL){
+									puts("output file open error (.txt) !!");
+									return(-1);
+								}
 							}
-							if((fraw=fopen("test2.txt","w"))==NULL){
-								puts("output file open error (.txt) !!");
-								return(-1);
-							}
-						}
-					*/
-					
-					// データファイル読み込み（1分単位）
+						*/
+						
+						// データファイル読み込み（1分単位）
 						//printf("reading: %s\n", fnin1);
 						if(fread(id0,sizeof(int),60*SAMP,fin0)!=60*SAMP){
 							puts("data reading error ! ");
@@ -999,11 +1006,11 @@ int main(int argc, char*argv[]){
 						*/
 					
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// フィッティング処理
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+						////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+						// フィッティング処理
+						////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+						////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 						fz_res_out=calloc(60*SAMP,sizeof(struct fringe_zabs_out)); // 良好なフィッティング結果を入れる変数（デフォルト1分ぶん）
 						fringe=calloc(60*SAMP,sizeof(double)); // 位相の2PI指数を決める際に一時的に使う変数（デフォルト1分ぶん）
@@ -1255,20 +1262,20 @@ int main(int argc, char*argv[]){
 												printf("i:%d, ellp_int.a00:%lf\n",i,ellp_int.a00);
 												
 												//補間楕円を用いた位相決定
-												idfit0=calloc(MM,sizeof(int));
-												idfit1=calloc(MM,sizeof(int));
-												idfit2=calloc(MM,sizeof(int));
-												idfit3=calloc(MM,sizeof(int));
+												idfit0i=calloc(MM,sizeof(int));
+												idfit1i=calloc(MM,sizeof(int));
+												idfit2i=calloc(MM,sizeof(int));
+												idfit3i=calloc(MM,sizeof(int));
 								
 												for(int j=0;j<MM;j++){
-													idfit0[j]=id0[i*MM+j];
-													idfit1[j]=id1[i*MM+j];
-													idfit2[j]=id2[i*MM+j];
-													idfit3[j]=id3[i*MM+j];
+													idfit0i[j]=id0[i*MM+j];
+													idfit1i[j]=id1[i*MM+j];
+													idfit2i[j]=id2[i*MM+j];
+													idfit3i[j]=id3[i*MM+j];
 												}
 												//printf("first point of idfit0:%d\n",i*MM);
 												
-												fringe_det(idfit0, idfit1, idfit2, idfit3, MM, ellp_int, &fz_res, &evalpara_int); //位相決定
+												fringe_det(idfit0i, idfit1i, idfit2i, idfit3i, MM, ellp_int, &fz_res, &evalpara_int); //位相決定
 
 												///////////////////良否判定をフラグに、楕円パラメータを構造体に書き込む/////////////////////////////
 												if((evalpara_int.zabsmax<th_zabsmax)&&(evalpara_int.zabsmin>=th_zabsmin)){
@@ -1314,7 +1321,7 @@ int main(int argc, char*argv[]){
 														belp[i*MM+j].cp0=ellp_int.cp0;
 													}
 												}
-												free(idfit0);free(idfit1);free(idfit2);free(idfit3);
+												free(idfit0i);free(idfit1i);free(idfit2i);free(idfit3i);
 											}
 										}
 										flg_int=0;
